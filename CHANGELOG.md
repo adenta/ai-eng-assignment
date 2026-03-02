@@ -19,3 +19,9 @@ I did a test run and was annoyed the artifacts weren't .gitignored
 ## magic strings (Written by andrew)
 
 so we already found one probelmatic magic string, did a scan and found a couple other minor problems,went ahead and fixed them. probably didnt need to do this.
+
+## "Does the pipeline work"
+
+now that things are tidy, we can answer the question we have been proposed: "Does the system work"
+
+What I'm seeing:
