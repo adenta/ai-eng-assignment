@@ -19,14 +19,14 @@ from .prompts import build_simple_prompt
 class TweakExtractor:
     """Extracts structured modifications from review text using LLM processing."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-5.2-chat-latest"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1-mini-2025-04-14"):
         """
         Initialize the TweakExtractor.
 
         Args:
             api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
             model: OpenAI model to use for extraction. Must support Structured
-                   Outputs (json_schema response format). Defaults to gpt-5-mini.
+                   Outputs (json_schema response format)..
         """
         self.client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
         self.model = model
