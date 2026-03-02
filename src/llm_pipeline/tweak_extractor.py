@@ -19,7 +19,7 @@ from .prompts import build_simple_prompt
 class TweakExtractor:
     """Extracts structured modifications from review text using LLM processing."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-5-mini"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-5.2-chat-latest"):
         """
         Initialize the TweakExtractor.
 
