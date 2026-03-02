@@ -6,13 +6,11 @@ It converts natural language descriptions of recipe changes into structured
 ModificationObject instances.
 """
 
-import json
 import os
 from typing import Optional
 
 from loguru import logger
 from openai import OpenAI
-from pydantic import ValidationError
 
 from .models import ModificationObject, Recipe, Review
 from .prompts import build_simple_prompt
@@ -21,13 +19,14 @@ from .prompts import build_simple_prompt
 class TweakExtractor:
     """Extracts structured modifications from review text using LLM processing."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-3.5-turbo"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-5-mini"):
         """
         Initialize the TweakExtractor.
 
         Args:
             api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
-            model: OpenAI model to use for extraction
+            model: OpenAI model to use for extraction. Must support Structured
+                   Outputs (json_schema response format). Defaults to gpt-5-mini.
         """
         self.client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
         self.model = model
@@ -65,43 +64,30 @@ class TweakExtractor:
 
         for attempt in range(max_retries + 1):
             try:
-                response = self.client.chat.completions.create(
+                # Use Structured Outputs (beta.parse) so the SDK enforces the
+                # Pydantic schema and returns an already-validated object.
+                # This replaces the old json_object + manual json.loads path.
+                #
+                response = self.client.beta.chat.completions.parse(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
-                    temperature=0.1,  # Low temperature for consistent extractions
-                    max_tokens=1000,
+                    response_format=ModificationObject,
                 )
 
-                raw_output = response.choices[0].message.content
-                logger.debug(f"LLM raw output: {raw_output}")
+                modification = response.choices[0].message.parsed
 
-                # Check if we got a response
-                if not raw_output:
-                    logger.warning(f"Attempt {attempt + 1}: Empty response from LLM")
+                if modification is None:
+                    logger.warning(
+                        f"Attempt {attempt + 1}: Model refused to produce output "
+                        f"(refusal: {response.choices[0].message.refusal})"
+                    )
                     continue
-
-                # Parse and validate the JSON response
-                modification_data = json.loads(raw_output)
-                modification = ModificationObject(**modification_data)
 
                 logger.info(
                     f"Successfully extracted {modification.modification_type} "
                     f"modification with {len(modification.edits)} edits"
                 )
                 return modification
-
-            except json.JSONDecodeError as e:
-                logger.warning(f"Attempt {attempt + 1}: Failed to parse JSON: {e}")
-                if attempt == max_retries:
-                    logger.error(f"Max retries reached. Raw output: {raw_output}")
-
-            except ValidationError as e:
-                logger.warning(f"Attempt {attempt + 1}: Validation error: {e}")
-                if attempt == max_retries:
-                    logger.error(
-                        f"Max retries reached. Invalid data: {modification_data}"
-                    )
 
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1}: Unexpected error: {e}")
