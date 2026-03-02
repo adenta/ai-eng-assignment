@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.13.5",
+    "fuzzysearch>=0.8.1",
     "loguru>=0.7.3",
     "lxml>=6.0.2",
     "openai>=1.109.1",
