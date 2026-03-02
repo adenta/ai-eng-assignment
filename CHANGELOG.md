@@ -91,3 +91,4 @@ nice to haves:
 - we really need more deterministic tests
 - null enhancements
 - model evals (beyond just updating to a gpt5)
+- batch processing of extract_top_k_modifications

@@ -110,39 +110,84 @@ class TweakExtractor:
 
         return None
 
-    def extract_single_modification(
-        self, reviews: list[Review], recipe: Recipe
-    ) -> tuple[ModificationObject, Review] | tuple[None, None]:
+    def rank_reviews(self, reviews: list[Review]) -> list[Review]:
         """
-        Extract modification from a single randomly selected review.
+        Return modification-bearing reviews in a deterministic priority order.
+
+        Ranking criteria (descending priority):
+            1. is_featured  (True before False)
+            2. helpful_count (higher is better)
+            3. rating        (higher is better, None treated as 0)
+            4. original index (stable tie-breaker — preserves input order)
 
         Args:
-            reviews: List of reviews to choose from
-            recipe: Original recipe being modified
+            reviews: Full list of Review objects
 
         Returns:
-            Tuple of (ModificationObject, source_Review) if successful, (None, None) otherwise
+            Sorted list containing only reviews where has_modification is True
         """
-        import random
+        candidates = [r for r in reviews if r.has_modification]
+        candidates.sort(
+            key=lambda r: (
+                r.is_featured,          # True > False
+                r.helpful_count,
+                r.rating if r.rating is not None else 0,
+            ),
+            reverse=True,
+        )
+        return candidates
 
-        # Filter to reviews with modifications
-        modification_reviews = [r for r in reviews if r.has_modification]
+    def extract_top_k_modifications(
+        self,
+        reviews: list[Review],
+        recipe: Recipe,
+        top_k: int = 3,
+    ) -> list[tuple[ModificationObject, Review]]:
+        """
+        Extract modifications from the top-K ranked reviews deterministically.
 
-        if not modification_reviews:
+        Reviews are ranked by: is_featured desc → helpful_count desc →
+        rating desc → original index asc.  No randomness is used, so the
+        same input always produces the same selected reviews and output.
+
+        Args:
+            reviews: List of Review objects (may include both featured and plain)
+            recipe:  Original recipe being modified
+            top_k:   Maximum number of reviews to process
+
+        Returns:
+            List of (ModificationObject, source_Review) pairs for each review
+            that produced a valid extraction (length ≤ top_k)
+        """
+        ranked = self.rank_reviews(reviews)
+
+        if not ranked:
             logger.warning("No reviews with modifications found")
-            return None, None
+            return []
 
-        # Select one random review
-        selected_review = random.choice(modification_reviews)
-        logger.info(f"Selected review: {selected_review.text[:100]}...")
+        selected = ranked[:top_k]
+        logger.info(
+            f"Selected {len(selected)} review(s) for extraction "
+            f"(top_k={top_k}, {sum(r.is_featured for r in selected)} featured)"
+        )
 
-        modification = self.extract_modification(selected_review, recipe)
-        if modification:
-            logger.info("Successfully extracted modification from selected review")
-            return modification, selected_review
-        else:
-            logger.warning("Failed to extract modification from selected review")
-            return None, None
+        results: list[tuple[ModificationObject, Review]] = []
+        for i, review in enumerate(selected, start=1):
+            logger.info(
+                f"Extracting modification {i}/{len(selected)}: "
+                f"featured={review.is_featured}, rating={review.rating}, "
+                f"text={review.text[:80]}..."
+            )
+            modification = self.extract_modification(review, recipe)
+            if modification:
+                results.append((modification, review))
+            else:
+                logger.warning(f"Skipping review {i} — extraction returned None")
+
+        logger.info(
+            f"Successfully extracted {len(results)}/{len(selected)} modification(s)"
+        )
+        return results
 
     def test_extraction(
         self, review_text: str, recipe_data: dict
