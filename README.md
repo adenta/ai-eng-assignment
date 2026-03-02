@@ -70,7 +70,7 @@ Original scraped recipes in `data/` directory contain reviews with `has_modifica
         "text": "I added an extra egg yolk for chewier texture",
         "rating": 5
       },
-      "modification_type": "addition",
+      "modification_type": ["quantity_adjustment", "addition"],
       "reasoning": "Improves texture and chewiness",
       "changes_made": [...]
     }
@@ -87,11 +87,18 @@ Original scraped recipes in `data/` directory contain reviews with `has_modifica
 
 The LLM Analysis Pipeline processes recipes in 3 steps:
 
-1. **Tweak Extraction**: Selects one random review with modifications and uses GPT-4o-mini to extract structured changes
+1. **Tweak Extraction**: Parses both `featured_tweaks` and `reviews`, deduplicates by normalized text, ranks reviews deterministically (`is_featured` desc, `helpful_count` desc, `rating` desc, stable input order tie-break), and extracts from top-K reviews (`top_k_reviews=3` by default) using OpenAI Structured Outputs with `gpt-4.1-mini-2025-04-14`
 2. **Recipe Modification**: Applies changes to the original recipe using fuzzy string matching
 3. **Enhanced Recipe Generation**: Creates enhanced version with full citation tracking back to source review
 
-Each run produces one enhanced recipe per original recipe, with complete attribution showing exactly what changed and why.
+Each run produces one enhanced recipe per original recipe, with complete attribution showing what changed and why.
+
+## Known Limitations
+
+- Conflicting edits across multiple high-ranked reviews can produce awkward merged ingredient text in some outputs.
+- Hypothetical/preference language (for example, "next time I will...") can still be treated as an applied modification if it is pre-labeled as `has_modification`.
+- Recipe timing metadata (`preptime`, `cooktime`, `totaltime`) from scraped input is not fully mapped into enhanced output fields.
+- Current tests focus on key unit behavior and end-to-end smoke validation; broader deterministic regression coverage is still limited.
 
 ## Development
 
