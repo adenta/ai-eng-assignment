@@ -1,0 +1,126 @@
+{
+  "url": "https://www.allrecipes.com/recipe/223042/chicken-parmesan/",
+  "scraped_at": "2026-03-02T15:31:38.852778",
+  "recipe_id": "223042",
+  "title": "Chicken Parmesan",
+  "description": "For the best chicken Parmesan, try Chef John&#39;s version that&#39;s pan-fried and then baked, delivering impressive results with a crispier crust than most recipes.",
+  "rating": {
+    "value": "4.9",
+    "count": "5117"
+  },
+  "preptime": "PT15M",
+  "cooktime": "PT20M",
+  "totaltime": "PT45M",
+  "servings": "4",
+  "ingredients": [
+    "4 skinless, boneless chicken breast halves",
+    "salt and freshly ground black pepper to taste",
+    "2 large eggs",
+    "1 cup panko bread crumbs, or more as needed",
+    "0.75 cup grated Parmesan cheese, divided",
+    "2 tablespoons all-purpose flour, or more if needed",
+    "0.5 cup olive oil for frying, or as needed",
+    "0.5 cup prepared tomato sauce",
+    "0.25 cup fresh mozzarella, cut into small cubes",
+    "0.25 cup chopped fresh basil",
+    "0.5 cup grated provolone cheese",
+    "2 teaspoons olive oil"
+  ],
+  "instructions": [
+    "Gather the ingredients. Preheat the oven to 450 degrees F (230 degrees C).",
+    "Place chicken breasts between two sheets of heavy plastic (resealable freezer bags work well) on a solid, level surface. Firmly pound chicken with the smooth side of a meat mallet to a thickness of 1/2-inch.",
+    "Season chicken thoroughly with salt and pepper. Using a sifter or strainer, sprinkle flour over chicken breasts, evenly coating both sides.",
+    "Beat eggs in a shallow bowl and set aside. Mix bread crumbs and 1/2 cup Parmesan cheese in a separate bowl, set aside. Dip a flour-coated chicken breast in beaten eggs. Transfer breast to the bread crumb mixture, pressing crumbs into both sides. Repeat for each breast. Let chicken rest for 10 to 15 minutes.",
+    "Heat 1/2 inch of olive oil in a large skillet over medium-high heat until it begins to shimmer. Cook chicken in batches, so you do not overcrowd the pan, until golden, about 2 minutes per side. The chicken will finish cooking in the oven.",
+    "Transfer chicken to a baking dish. Top each breast with 2 tablespoons tomato sauce. Layer each chicken breast with equal amounts of mozzarella cheese, fresh basil, and provolone cheese. Sprinkle remaining Parmesan over top and drizzle each with 1/2 teaspoon olive oil.",
+    "Bake in the preheated oven until cheese is browned and bubbly and chicken breasts are no longer pink in the center, 15 to 20 minutes. An instant-read thermometer inserted into the center should read at least 165 degrees F (74 degrees C). Let chicken rest briefly before serving."
+  ],
+  "nutrition": {
+    "@type": "NutritionInformation",
+    "calories": "471 kcal",
+    "carbohydrateContent": "25 g",
+    "cholesterolContent": "187 mg",
+    "fiberContent": "1 g",
+    "proteinContent": "42 g",
+    "saturatedFatContent": "9 g",
+    "sodiumContent": "840 mg",
+    "sugarContent": "2 g",
+    "fatContent": "25 g",
+    "unsaturatedFatContent": "0 g"
+  },
+  "author": "[{'@type': 'Person', 'name': 'John Mitzewich', 'url': 'https://www.allrecipes.com/author/chef-john/'}]",
+  "categories": [
+    "Dinner"
+  ],
+  "keywords": [
+    "publisher-tested"
+  ],
+  "featured_tweaks": [
+    {
+      "text": "This chicken parmesan turned out great. Next time , I will use a bit of a heavier hand with the salt and pepper. I may also beat some garlic into the egg before breading with panko. My family really liked us.I'll make it again next time.I may also try brining the chicken for a little extra flavor.",
+      "rating": 5,
+      "has_modification": true,
+      "is_featured": true
+    },
+    {
+      "text": "One of my families favorite recipes. Perfection. Followed it exactly. Just did 6 breasts instead of 4.",
+      "rating": 5,
+      "has_modification": true,
+      "is_featured": true
+    },
+    {
+      "text": "I didn’t have enough Parmesan cheese but next time I will! Followed the recipe exactly and the chicken was so moist & delicious! I added some Montreal chicken spice and some Italian mixed seasoning (just sprinkled on the chicken in the frying pan! Used homemade pasta sauce, covered with mozzarella & sprinkled with fresh basil! It will be on my list of dinners for sure!",
+      "rating": 5,
+      "has_modification": true,
+      "is_featured": true
+    },
+    {
+      "text": "If you get nice fresh thick chicken breasts it makes a huge difference. The only thing I did differently is use Italian style panko and more tomato pasta sauce. I also did a portobello mushroom with the same breading and threw in with the chicken while it baked for 18 minutes. Just so I had a vegetarian option.",
+      "rating": 5,
+      "has_modification": true,
+      "is_featured": true
+    }
+  ],
+  "reviews": [
+    {
+      "text": "Made with thin sliced chicken breasts and whole wheat panko. Everyone loved it.",
+      "rating": 5
+    },
+    {
+      "text": "I made it the exact same way! Smells so good!",
+      "rating": 5
+    },
+    {
+      "text": "Delicious and simple to prepare. I served the chicken with a side of spaghetti noodles.",
+      "rating": 5
+    },
+    {
+      "text": "This chicken parmesan turned out great. Next time , I will use a bit of a heavier hand with the salt and pepper. I may also beat some garlic into the egg before breading with panko. My family really liked us.I'll make it again next time.I may also try brining the chicken for a little extra flavor.",
+      "rating": 5,
+      "has_modification": true
+    },
+    {
+      "text": "Did not change anything.",
+      "rating": 5
+    },
+    {
+      "text": "Very good recipe.... thank you.",
+      "rating": 5
+    },
+    {
+      "text": "One of my families favorite recipes. Perfection. Followed it exactly. Just did 6 breasts instead of 4.",
+      "rating": 5,
+      "has_modification": true
+    },
+    {
+      "text": "I didn’t have enough Parmesan cheese but next time I will! Followed the recipe exactly and the chicken was so moist & delicious! I added some Montreal chicken spice and some Italian mixed seasoning (just sprinkled on the chicken in the frying pan! Used homemade pasta sauce, covered with mozzarella & sprinkled with fresh basil! It will be on my list of dinners for sure!",
+      "rating": 5,
+      "has_modification": true
+    },
+    {
+      "text": "If you get nice fresh thick chicken breasts it makes a huge difference. The only thing I did differently is use Italian style panko and more tomato pasta sauce. I also did a portobello mushroom with the same breading and threw in with the chicken while it baked for 18 minutes. Just so I had a vegetarian option.",
+      "rating": 5,
+      "has_modification": true
+    }
+  ]
+}

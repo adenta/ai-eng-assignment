@@ -9,7 +9,9 @@ This module coordinates the complete 3-step pipeline:
 Processes recipe data from scraped JSON files and outputs enhanced recipes.
 """
 
+import csv
 import json
+from html import unescape
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -370,4 +372,148 @@ class LLMAnalysisPipeline:
             json.dump(report, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Saved pipeline summary report to: {output_path}")
+        return output_path
+
+    def save_summary_report_csv(
+        self, enhanced_recipes: List[EnhancedRecipe], output_path: Optional[str] = None
+    ) -> str:
+        """
+        Save pipeline summary report to a CSV file for spreadsheet tools.
+
+        The CSV is formatted for readability in spreadsheet tools:
+            - summary row at top
+            - one row per enhanced recipe
+            - totals row at bottom
+
+        Args:
+            enhanced_recipes: List of enhanced recipes
+            output_path: Path to save report (auto-generated if None)
+
+        Returns:
+            Path to saved CSV report
+        """
+        if output_path is None:
+            output_path = str(self.output_dir / "pipeline_summary_report.csv")
+
+        report = self.generate_summary_report(enhanced_recipes)
+        pipeline_summary = report.get("pipeline_summary", {})
+        enhanced_rows = report.get("enhanced_recipes", [])
+        change_type_distribution = pipeline_summary.get("change_type_distribution", {})
+
+        fieldnames = [
+            "row_type",
+            "recipe_id",
+            "title",
+            "modifications_count",
+            "changes_count",
+            "change_types",
+            "has_quantity_adjustment",
+            "has_ingredient_substitution",
+            "has_technique_change",
+            "has_addition",
+            "has_removal",
+            "notes",
+        ]
+
+        def _has(change_types: list[str], target: str) -> str:
+            return "yes" if target in change_types else "no"
+
+        distribution_text = " | ".join(
+            f"{k}: {v}" for k, v in sorted(change_type_distribution.items())
+        )
+
+        with open(output_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            if not enhanced_rows:
+                writer.writerow(
+                    {
+                        "row_type": "NO_DATA",
+                        "recipe_id": "N/A",
+                        "title": "No enhanced recipes processed",
+                        "modifications_count": 0,
+                        "changes_count": 0,
+                        "change_types": "",
+                        "has_quantity_adjustment": "no",
+                        "has_ingredient_substitution": "no",
+                        "has_technique_change": "no",
+                        "has_addition": "no",
+                        "has_removal": "no",
+                        "notes": "Run produced no enhanced recipes",
+                    }
+                )
+            else:
+                writer.writerow(
+                    {
+                        "row_type": "SUMMARY",
+                        "recipe_id": "ALL_ENHANCED_RECIPES",
+                        "title": f"{pipeline_summary.get('recipes_processed', 0)} enhanced recipes",
+                        "modifications_count": pipeline_summary.get(
+                            "total_modifications_applied", 0
+                        ),
+                        "changes_count": pipeline_summary.get("total_changes_made", 0),
+                        "change_types": distribution_text,
+                        "has_quantity_adjustment": "",
+                        "has_ingredient_substitution": "",
+                        "has_technique_change": "",
+                        "has_addition": "",
+                        "has_removal": "",
+                        "notes": "Aggregated totals for this run",
+                    }
+                )
+
+                writer.writerow({name: "" for name in fieldnames})
+
+                sorted_rows = sorted(
+                    enhanced_rows,
+                    key=lambda r: (-r.get("changes_count", 0), r.get("title", "")),
+                )
+
+                for row in sorted_rows:
+                    change_types = row.get("change_types", [])
+                    writer.writerow(
+                        {
+                            "row_type": "RECIPE",
+                            "recipe_id": row.get("recipe_id", ""),
+                            "title": unescape(row.get("title", "")),
+                            "modifications_count": row.get("modifications_count", 0),
+                            "changes_count": row.get("changes_count", 0),
+                            "change_types": ", ".join(change_types),
+                            "has_quantity_adjustment": _has(
+                                change_types, "quantity_adjustment"
+                            ),
+                            "has_ingredient_substitution": _has(
+                                change_types, "ingredient_substitution"
+                            ),
+                            "has_technique_change": _has(
+                                change_types, "technique_change"
+                            ),
+                            "has_addition": _has(change_types, "addition"),
+                            "has_removal": _has(change_types, "removal"),
+                            "notes": "",
+                        }
+                    )
+
+                writer.writerow({name: "" for name in fieldnames})
+                writer.writerow(
+                    {
+                        "row_type": "TOTAL",
+                        "recipe_id": "ALL_ENHANCED_RECIPES",
+                        "title": "Totals (same as summary)",
+                        "modifications_count": pipeline_summary.get(
+                            "total_modifications_applied", 0
+                        ),
+                        "changes_count": pipeline_summary.get("total_changes_made", 0),
+                        "change_types": distribution_text,
+                        "has_quantity_adjustment": "",
+                        "has_ingredient_substitution": "",
+                        "has_technique_change": "",
+                        "has_addition": "",
+                        "has_removal": "",
+                        "notes": "End of report",
+                        }
+                    )
+
+        logger.info(f"Saved pipeline summary CSV report to: {output_path}")
         return output_path

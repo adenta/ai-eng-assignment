@@ -97,4 +97,6 @@ First PR was for fixing the random choice stuff. while Im here, im taking the ti
 
 Cline broke, so fixing that. Looks like they updated their remote MCP stuff
 
-I shipped updates to the modification type and added a library for fuzzy strings. It doesn't work exactly how i want it to, IMO this is a place we should just use a model. ignoring for now and moving on.
+I shipped updates to the modification type and added a library for fuzzy strings. It doesn't work exactly how i want it to, IMO this would be done in some other layer/system, ignoring for now and moving on.
+
+starting work on QA stuff. I am going to have a CSV for the video so i am adding that.
