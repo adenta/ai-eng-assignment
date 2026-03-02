@@ -14,12 +14,14 @@ When a user shares their experience modifying a recipe, you need to:
 
 You must output valid JSON that matches the ModificationObject schema.
 
-Categories:
+Categories (use as many as apply — modification_type is an ARRAY):
 - "ingredient_substitution": Replacing one ingredient with another
 - "quantity_adjustment": Changing amounts of existing ingredients
 - "technique_change": Altering cooking method, temperature, time
 - "addition": Adding new ingredients or steps
 - "removal": Removing ingredients or steps
+
+Many reviews describe COMPOUND modifications that span multiple categories. Always list every applicable category in the modification_type array. For example, a review that adjusts sugar quantities AND omits water AND adds cream of tartar should use ["quantity_adjustment", "removal", "addition"].
 
 Edit operations:
 - "replace": Find existing text and replace it
@@ -64,7 +66,7 @@ FEW_SHOT_EXAMPLES = [
             "2 eggs",
         ],
         "expected_output": {
-            "modification_type": "quantity_adjustment",
+            "modification_type": ["quantity_adjustment"],
             "reasoning": "Makes cookies more chewy and flavorful by increasing brown sugar ratio",
             "edits": [
                 {
@@ -83,16 +85,39 @@ FEW_SHOT_EXAMPLES = [
         },
     },
     {
-        "review": "I added a teaspoon of cream of tartar to the batter and omitted the water. The cookies retained their shape and didn't spread when baked.",
+        # Compound example: adjusts quantities, removes water, adds cream of tartar,
+        # and changes technique (refrigerating) — all in one review.
+        "review": "I used a half cup of sugar and one-and-a-half cups of brown sugar; I omitted the water; I added a teaspoon of cream of tartar to the batter; and I refrigerated the batter for at least an hour before scooping and baking. The cookies retained their shape and didn't spread when baked.",
         "ingredients": [
-            "1 teaspoon baking soda",
+            "1 cup white sugar",
+            "1 cup packed brown sugar",
             "2 teaspoons hot water",
             "0.5 teaspoon salt",
         ],
+        "instructions": [
+            "Drop spoonfuls of dough 2 inches apart onto ungreased baking sheets.",
+        ],
         "expected_output": {
-            "modification_type": "addition",
-            "reasoning": "Helps cookies retain shape and prevents spreading during baking",
+            "modification_type": ["quantity_adjustment", "removal", "addition", "technique_change"],
+            "reasoning": "Adjusting sugar ratio, removing water, adding cream of tartar, and chilling the dough all work together to produce cookies that hold their shape and have a chewier, more complex flavour.",
             "edits": [
+                {
+                    "target": "ingredients",
+                    "operation": "replace",
+                    "find": "1 cup white sugar",
+                    "replace": "0.5 cup white sugar",
+                },
+                {
+                    "target": "ingredients",
+                    "operation": "replace",
+                    "find": "1 cup packed brown sugar",
+                    "replace": "1.5 cups packed brown sugar",
+                },
+                {
+                    "target": "ingredients",
+                    "operation": "remove",
+                    "find": "2 teaspoons hot water",
+                },
                 {
                     "target": "ingredients",
                     "operation": "add_after",
@@ -100,9 +125,10 @@ FEW_SHOT_EXAMPLES = [
                     "add": "1 teaspoon cream of tartar",
                 },
                 {
-                    "target": "ingredients",
-                    "operation": "remove",
-                    "find": "2 teaspoons hot water",
+                    "target": "instructions",
+                    "operation": "add_after",
+                    "find": "Drop spoonfuls of dough 2 inches apart onto ungreased baking sheets.",
+                    "add": "Refrigerate the dough for at least 1 hour before scooping and baking.",
                 },
             ],
         },
@@ -111,8 +137,8 @@ FEW_SHOT_EXAMPLES = [
         "review": "I used 1 tsp of salt instead of 1/2 tsp and omitted the nuts. Much better flavor without being too salty.",
         "ingredients": ["0.5 teaspoon salt", "1 cup chopped walnuts"],
         "expected_output": {
-            "modification_type": "quantity_adjustment",
-            "reasoning": "Improves flavor balance without making cookies too salty",
+            "modification_type": ["quantity_adjustment", "removal"],
+            "reasoning": "Improves flavor balance without making cookies too salty, and removes nuts for a cleaner texture",
             "edits": [
                 {
                     "target": "ingredients",
@@ -135,7 +161,7 @@ FEW_SHOT_EXAMPLES = [
             "Bake in the preheated oven until edges are nicely browned, about 10 minutes",
         ],
         "expected_output": {
-            "modification_type": "technique_change",
+            "modification_type": ["technique_change"],
             "reasoning": "Higher temperature and shorter time creates crispier edges",
             "edits": [
                 {
@@ -209,7 +235,7 @@ Extract the recipe modifications from this review. The user has made changes to 
 
 Output a JSON object with this structure:
 {{
-    "modification_type": "quantity_adjustment|ingredient_substitution|technique_change|addition|removal",
+    "modification_type": ["quantity_adjustment", "addition"],
     "reasoning": "Brief explanation of why this modification improves the recipe",
     "edits": [
         {{
@@ -221,5 +247,7 @@ Output a JSON object with this structure:
         }}
     ]
 }}
+
+modification_type MUST be a JSON array. Include every applicable category — most reviews involve more than one.
 
 Focus on concrete changes the user actually made, not general suggestions."""

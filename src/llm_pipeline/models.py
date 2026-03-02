@@ -29,16 +29,26 @@ class ModificationEdit(BaseModel):
     )
 
 
+# Valid modification type values
+ModificationType = Literal[
+    "ingredient_substitution",
+    "quantity_adjustment",
+    "technique_change",
+    "addition",
+    "removal",
+]
+
+
 class ModificationObject(BaseModel):
     """Structured modification parsed from a review."""
 
-    modification_type: Literal[
-        "ingredient_substitution",
-        "quantity_adjustment",
-        "technique_change",
-        "addition",
-        "removal",
-    ] = Field(description="Category of modification")
+    modification_type: List[ModificationType] = Field(
+        description=(
+            "One or more categories that describe this modification. "
+            "Use a list so compound reviews (e.g. a substitution AND a technique change) "
+            "can be represented accurately."
+        )
+    )
 
     reasoning: str = Field(description="Why this modification improves the recipe")
 
@@ -72,7 +82,9 @@ class ModificationApplied(BaseModel):
     source_review: SourceReview = Field(
         description="Review that suggested this modification"
     )
-    modification_type: str = Field(description="Category of modification")
+    modification_type: List[str] = Field(
+        description="One or more categories describing this modification"
+    )
     reasoning: str = Field(description="Why this modification was applied")
     changes_made: List[ChangeRecord] = Field(
         description="Detailed list of changes made"
