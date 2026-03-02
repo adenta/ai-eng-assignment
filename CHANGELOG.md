@@ -93,6 +93,8 @@ nice to haves:
 - model evals (beyond just updating to a gpt5)
 - batch processing of extract_top_k_modifications
 
-First PR was for fixing the random choice stuff. while Im here, im taking the time to add structured output support because its def worth the time. Over provisioning with gpt 5.2 chat, can always do a proper eval later for cost/latency. we probably don't need a reasoning model here. 4.1 mightve been the better choice, but im trying to move off 4 series models out of caution for deprecation.
+First PR was for fixing the random choice stuff. while Im here, im taking the time to add structured output support because its def worth the time. Going with gpt 4.1 mini.
 
 Cline broke, so fixing that. Looks like they updated their remote MCP stuff
+
+I shipped updates to the modification type and added a library for fuzzy strings. It doesn't work exactly how i want it to, IMO this is a place we should just use a model. ignoring for now and moving on.
