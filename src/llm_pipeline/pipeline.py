@@ -197,7 +197,9 @@ class LLMAnalysisPipeline:
             traceback.print_exc()
             return None
 
-    def process_recipe_directory(self, data_dir: str = "data") -> List[EnhancedRecipe]:
+    def process_recipe_directory(
+        self, data_dir: str = str(_PROJECT_ROOT / "data")
+    ) -> List[EnhancedRecipe]:
         """
         Process all recipe files in a directory.
 

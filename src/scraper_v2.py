@@ -1,10 +1,16 @@
 import json
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
 from bs4 import BeautifulSoup
+
+# Resolve paths relative to this file so the scraper works regardless of cwd.
+# scraper_v2.py lives in src/, so parent is project root.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_DATA_DIR = _PROJECT_ROOT / "data"
 
 
 def extract_review_data(review_elem) -> Dict:
@@ -321,14 +327,14 @@ def save_recipe_data(recipe_data: Dict, filename: str = None) -> str:
         title_slug = re.sub(r"[^a-z0-9]+", "-", recipe_data.get("title", "").lower())[
             :50
         ]
-        filename = f"data/recipe_{recipe_id}_{title_slug}.json"
+        filepath = str(_DATA_DIR / f"recipe_{recipe_id}_{title_slug}.json")
+    else:
+        # If an explicit filename is given, resolve it against _DATA_DIR unless
+        # it already looks like an absolute path.
+        filepath = filename if Path(filename).is_absolute() else str(_DATA_DIR / filename)
 
     # Create data directory if it doesn't exist
-    import os
-
-    os.makedirs("data", exist_ok=True)
-
-    filepath = filename if "/" in filename else f"data/{filename}"
+    _DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(recipe_data, f, indent=2, ensure_ascii=False)
@@ -385,9 +391,8 @@ def main():
     """
     Main function to demonstrate scraping functionality.
     """
-    import os
-
-    os.makedirs("data", exist_ok=True)
+    # Ensure the data directory exists (uses absolute _DATA_DIR, not cwd-relative)
+    _DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     # Test with a single recipe first
     test_url = "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/"

@@ -1,4 +1,4 @@
-## Fix start cleaning stuff up
+## Fix start cleaning stuff up (Written by andrew)
 
 The first thing I did was make it so I could use UV everywhere (Codex 5.2)
 
@@ -15,3 +15,7 @@ I did a test run and was annoyed the artifacts weren't .gitignored
 - `src/llm_pipeline/pipeline.py` — default `output_dir` now resolves to an absolute path derived from `__file__` (`<project_root>/data/enhanced`), so it's correct regardless of working directory
 - Deleted the stale `src/data/` artifact directory
 - `.gitignore` — added `data/enhanced/` and `src/data/` so generated pipeline outputs are never tracked
+
+## magic strings (Written by andrew)
+
+so we already found one probelmatic magic string, did a scan and found a couple other minor problems,went ahead and fixed them. probably didnt need to do this.
