@@ -52,5 +52,8 @@ scratch.py
 claude.md
 memory-bank/
 .claude/
+
+# Pipeline outputs — generated artifacts, not source data
 data/enhanced/
+src/data/
 repomix-output.xml

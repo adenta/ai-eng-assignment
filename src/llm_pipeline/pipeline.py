@@ -13,6 +13,10 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Absolute path to the project root (two levels up from this file: src/llm_pipeline/ -> src/ -> root)
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_OUTPUT_DIR = str(_PROJECT_ROOT / "data" / "enhanced")
+
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -28,7 +32,7 @@ class LLMAnalysisPipeline:
     def __init__(
         self,
         openai_api_key: Optional[str] = None,
-        output_dir: str = "data/enhanced",
+        output_dir: str = _DEFAULT_OUTPUT_DIR,
         pipeline_version: str = "1.0.0",
     ):
         """
