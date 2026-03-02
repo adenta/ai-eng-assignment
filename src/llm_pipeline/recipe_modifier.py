@@ -9,6 +9,7 @@ import copy
 from difflib import SequenceMatcher
 from typing import List, Optional, Tuple
 
+from fuzzysearch import find_near_matches
 from loguru import logger
 
 from .models import (
@@ -62,6 +63,55 @@ class RecipeModifier:
         else:
             return None, None, best_score
 
+    def _max_edit_distance(self, text: str) -> int:
+        """Return max Levenshtein distance allowed for fuzzy substring search."""
+        if not text:
+            return 0
+        return max(1, int(len(text) * 0.2))
+
+    def _replace_with_fuzzy_substring(
+        self,
+        original_text: str,
+        find_text: str,
+        replace_text: str,
+    ) -> Tuple[str, float, bool]:
+        """
+        Replace text in a single matched line using exact-first, fuzzy-second logic.
+
+        Returns:
+            Tuple of (new_text, substring_similarity, replaced)
+        """
+        if not find_text:
+            return original_text, 0.0, False
+
+        # Fast path for exact replacements.
+        if find_text in original_text:
+            return original_text.replace(find_text, replace_text, 1), 1.0, True
+
+        max_distance = self._max_edit_distance(find_text)
+        near_matches = find_near_matches(find_text, original_text, max_l_dist=max_distance)
+        if not near_matches:
+            return original_text, 0.0, False
+
+        # Prefer the closest fuzzy span, then earliest match for determinism.
+        best_match = min(near_matches, key=lambda m: (m.dist, m.start))
+        matched_span = original_text[best_match.start:best_match.end]
+        span_similarity = SequenceMatcher(
+            None,
+            find_text.lower(),
+            matched_span.lower(),
+        ).ratio()
+
+        if span_similarity < self.similarity_threshold:
+            return original_text, span_similarity, False
+
+        new_text = (
+            original_text[:best_match.start]
+            + replace_text
+            + original_text[best_match.end:]
+        )
+        return new_text, span_similarity, True
+
     def apply_edit(
         self,
         edit: ModificationEdit,
@@ -88,17 +138,33 @@ class RecipeModifier:
 
             if match and index is not None:
                 original_text = modified_content[index]
-                new_text = original_text.replace(edit.find, edit.replace or "")
-                modified_content[index] = new_text
+                new_text, span_score, replaced = self._replace_with_fuzzy_substring(
+                    original_text=original_text,
+                    find_text=edit.find,
+                    replace_text=edit.replace or "",
+                )
 
-                change_records.append(ChangeRecord(
-                    type="ingredient" if edit.target == "ingredients" else "instruction",
-                    from_text=original_text,
-                    to_text=new_text,
-                    operation="replace"
-                ))
-
-                logger.info(f"Replaced '{edit.find}' with '{edit.replace}' (similarity: {score:.2f})")
+                if replaced and new_text != original_text:
+                    modified_content[index] = new_text
+                    change_records.append(ChangeRecord(
+                        type="ingredient" if edit.target == "ingredients" else "instruction",
+                        from_text=original_text,
+                        to_text=new_text,
+                        operation="replace"
+                    ))
+                    logger.info(
+                        f"Replaced '{edit.find}' with '{edit.replace}' "
+                        f"(line similarity: {score:.2f}, span similarity: {span_score:.2f})"
+                    )
+                elif replaced:
+                    logger.warning(
+                        f"Matched replace span for '{edit.find}' but text was unchanged"
+                    )
+                else:
+                    logger.warning(
+                        f"Could not replace '{edit.find}' in matched {edit.target} line "
+                        f"(line similarity: {score:.2f}, span similarity: {span_score:.2f})"
+                    )
             else:
                 logger.warning(f"Could not find '{edit.find}' in {edit.target} (best similarity: {score:.2f})")
 
