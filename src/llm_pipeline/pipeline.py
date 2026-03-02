@@ -517,3 +517,200 @@ class LLMAnalysisPipeline:
 
         logger.info(f"Saved pipeline summary CSV report to: {output_path}")
         return output_path
+
+    def save_changes_report_csv(
+        self, enhanced_recipes: List[EnhancedRecipe], output_path: Optional[str] = None
+    ) -> str:
+        """
+        Save a line-level change report to CSV (one row per applied change).
+
+        This report is designed for human review in spreadsheet tools.
+        """
+        if output_path is None:
+            output_path = str(self.output_dir / "pipeline_changes_report.csv")
+
+        fieldnames = [
+            "row_type",
+            "recipe_id",
+            "recipe_title",
+            "modification_index",
+            "change_index",
+            "source_reviewer",
+            "source_rating",
+            "source_review_excerpt",
+            "modification_types",
+            "modification_reasoning",
+            "operation",
+            "target_type",
+            "before_text",
+            "after_text",
+            "diff_preview",
+            "notes",
+        ]
+
+        def _excerpt(text: str, max_len: int = 220) -> str:
+            compact = " ".join(unescape(text or "").split())
+            if len(compact) <= max_len:
+                return compact
+            return compact[: max_len - 3] + "..."
+
+        def _diff_preview(before_text: str, after_text: str) -> str:
+            if before_text and after_text:
+                return f"- {before_text} || + {after_text}"
+            if before_text and not after_text:
+                return f"- {before_text}"
+            if after_text and not before_text:
+                return f"+ {after_text}"
+            return ""
+
+        total_modifications = sum(
+            len(recipe.modifications_applied) for recipe in enhanced_recipes
+        )
+        total_changes = sum(
+            recipe.enhancement_summary.total_changes for recipe in enhanced_recipes
+        )
+
+        with open(output_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            if not enhanced_recipes:
+                writer.writerow(
+                    {
+                        "row_type": "NO_DATA",
+                        "recipe_id": "N/A",
+                        "recipe_title": "No enhanced recipes processed",
+                        "modification_index": "",
+                        "change_index": "",
+                        "source_reviewer": "",
+                        "source_rating": "",
+                        "source_review_excerpt": "",
+                        "modification_types": "",
+                        "modification_reasoning": "",
+                        "operation": "",
+                        "target_type": "",
+                        "before_text": "",
+                        "after_text": "",
+                        "diff_preview": "",
+                        "notes": "Run produced no enhanced recipes",
+                    }
+                )
+            else:
+                writer.writerow(
+                    {
+                        "row_type": "SUMMARY",
+                        "recipe_id": "ALL_ENHANCED_RECIPES",
+                        "recipe_title": f"{len(enhanced_recipes)} enhanced recipes",
+                        "modification_index": "",
+                        "change_index": "",
+                        "source_reviewer": "",
+                        "source_rating": "",
+                        "source_review_excerpt": "",
+                        "modification_types": "",
+                        "modification_reasoning": "",
+                        "operation": "",
+                        "target_type": "",
+                        "before_text": "",
+                        "after_text": "",
+                        "diff_preview": "",
+                        "notes": (
+                            f"total_modifications_applied={total_modifications}; "
+                            f"total_changes_made={total_changes}"
+                        ),
+                    }
+                )
+
+                writer.writerow({name: "" for name in fieldnames})
+
+                sorted_recipes = sorted(
+                    enhanced_recipes, key=lambda r: unescape(r.title).lower()
+                )
+                for recipe in sorted_recipes:
+                    recipe_title = unescape(recipe.title)
+                    for mod_idx, mod in enumerate(recipe.modifications_applied, start=1):
+                        source_review_excerpt = _excerpt(mod.source_review.text or "")
+                        source_reviewer = mod.source_review.reviewer or ""
+                        source_rating = (
+                            mod.source_review.rating
+                            if mod.source_review.rating is not None
+                            else ""
+                        )
+                        modification_types = ", ".join(mod.modification_type)
+                        reasoning = _excerpt(mod.reasoning or "", max_len=260)
+
+                        if not mod.changes_made:
+                            writer.writerow(
+                                {
+                                    "row_type": "MODIFICATION_NO_CHANGES",
+                                    "recipe_id": recipe.recipe_id,
+                                    "recipe_title": recipe_title,
+                                    "modification_index": mod_idx,
+                                    "change_index": "",
+                                    "source_reviewer": source_reviewer,
+                                    "source_rating": source_rating,
+                                    "source_review_excerpt": source_review_excerpt,
+                                    "modification_types": modification_types,
+                                    "modification_reasoning": reasoning,
+                                    "operation": "",
+                                    "target_type": "",
+                                    "before_text": "",
+                                    "after_text": "",
+                                    "diff_preview": "",
+                                    "notes": "Extracted modification produced no applied edits",
+                                }
+                            )
+                            continue
+
+                        for change_idx, change in enumerate(mod.changes_made, start=1):
+                            before_text = unescape(change.from_text or "")
+                            after_text = unescape(change.to_text or "")
+                            writer.writerow(
+                                {
+                                    "row_type": "CHANGE",
+                                    "recipe_id": recipe.recipe_id,
+                                    "recipe_title": recipe_title,
+                                    "modification_index": mod_idx,
+                                    "change_index": change_idx,
+                                    "source_reviewer": source_reviewer,
+                                    "source_rating": source_rating,
+                                    "source_review_excerpt": source_review_excerpt,
+                                    "modification_types": modification_types,
+                                    "modification_reasoning": reasoning,
+                                    "operation": change.operation,
+                                    "target_type": change.type,
+                                    "before_text": before_text,
+                                    "after_text": after_text,
+                                    "diff_preview": _diff_preview(
+                                        before_text, after_text
+                                    ),
+                                    "notes": "",
+                                }
+                            )
+
+                writer.writerow({name: "" for name in fieldnames})
+                writer.writerow(
+                    {
+                        "row_type": "TOTAL",
+                        "recipe_id": "ALL_ENHANCED_RECIPES",
+                        "recipe_title": "Totals (same as summary)",
+                        "modification_index": "",
+                        "change_index": "",
+                        "source_reviewer": "",
+                        "source_rating": "",
+                        "source_review_excerpt": "",
+                        "modification_types": "",
+                        "modification_reasoning": "",
+                        "operation": "",
+                        "target_type": "",
+                        "before_text": "",
+                        "after_text": "",
+                        "diff_preview": "",
+                        "notes": (
+                            f"total_modifications_applied={total_modifications}; "
+                            f"total_changes_made={total_changes}"
+                        ),
+                    }
+                )
+
+        logger.info(f"Saved pipeline changes CSV report to: {output_path}")
+        return output_path

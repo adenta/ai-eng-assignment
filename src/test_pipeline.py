@@ -127,11 +127,13 @@ def test_all_recipes():
         # Generate summary reports
         report_path = pipeline.save_summary_report(enhanced_recipes)
         report_csv_path = pipeline.save_summary_report_csv(enhanced_recipes)
+        changes_csv_path = pipeline.save_changes_report_csv(enhanced_recipes)
 
         logger.info(f"\n{'=' * 60}")
         logger.info(f"Enhanced recipes: {len(enhanced_recipes)}/{total_count} total")
         logger.info(f"Summary report saved to: {report_path}")
         logger.info(f"Summary CSV saved to: {report_csv_path}")
+        logger.info(f"Changes CSV saved to: {changes_csv_path}")
 
         # Success only if all enhanceable recipes were processed
         if len(enhanced_recipes) == len(enhanceable_files):
@@ -194,6 +196,7 @@ def main():
             logger.info("Check the 'data/enhanced/' directory for all enhanced recipes.")
             logger.info("Check 'data/enhanced/pipeline_summary_report.json' for detailed results.")
             logger.info("Check 'data/enhanced/pipeline_summary_report.csv' for spreadsheet view.")
+            logger.info("Check 'data/enhanced/pipeline_changes_report.csv' for line-level changes.")
         else:
             logger.error("All recipes validation failed! ✗")
             sys.exit(1)
