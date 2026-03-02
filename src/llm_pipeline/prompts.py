@@ -41,7 +41,7 @@ Extract the recipe modifications from this review. The user has made changes to 
 
 Output a JSON object with this structure:
 {{
-    "modification_type": "quantity_adjustment|ingredient_substitution|technique_change|addition|removal",
+    "modification_type": ["quantity_adjustment|ingredient_substitution|technique_change|addition|removal"],
     "reasoning": "Brief explanation of why this modification improves the recipe",
     "edits": [
         {{
