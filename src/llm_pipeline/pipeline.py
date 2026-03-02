@@ -34,6 +34,7 @@ class LLMAnalysisPipeline:
         openai_api_key: Optional[str] = None,
         output_dir: str = _DEFAULT_OUTPUT_DIR,
         pipeline_version: str = "1.0.0",
+        top_k_reviews: int = 3,
     ):
         """
         Initialize the complete LLM Analysis Pipeline.
@@ -42,12 +43,17 @@ class LLMAnalysisPipeline:
             openai_api_key: OpenAI API key (loads from env if not provided)
             output_dir: Directory to save enhanced recipes
             pipeline_version: Version identifier for tracking
+            top_k_reviews: Maximum number of ranked reviews to extract and apply.
+                           Featured reviews are always prioritised first.
+                           Set to a very large number (e.g. 999) to process all
+                           reviews deterministically.
         """
         # Load environment variables
         load_dotenv()
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.top_k_reviews = top_k_reviews
 
         # Initialize pipeline components
         self.tweak_extractor = TweakExtractor(api_key=openai_api_key)
@@ -58,6 +64,7 @@ class LLMAnalysisPipeline:
 
         logger.info(f"Initialized LLM Analysis Pipeline v{pipeline_version}")
         logger.info(f"Output directory: {self.output_dir}")
+        logger.info(f"Top-K reviews per recipe: {self.top_k_reviews}")
 
     def load_recipe_data(self, file_path: str) -> Dict[str, Any]:
         """
@@ -96,32 +103,64 @@ class LLMAnalysisPipeline:
         """
         Parse raw review data into Review objects.
 
+        Reads both ``featured_tweaks`` and ``reviews`` arrays, deduplicates by
+        normalised text (whitespace-collapsed, lower-cased), and preserves the
+        ``is_featured`` flag so the downstream ranker can prioritise featured
+        reviews correctly.
+
         Args:
             recipe_data: Raw recipe data containing reviews
 
         Returns:
-            List of Review objects
+            Deduplicated list of Review objects (featured entries kept over
+            plain duplicates)
         """
-        reviews = []
-        raw_reviews = recipe_data.get("reviews", [])
+        seen_keys: dict[str, Review] = {}
 
-        for review_data in raw_reviews:
-            if review_data.get("text"):
-                review = Review(
-                    text=review_data["text"],
+        def _normalise(text: str) -> str:
+            """Collapse whitespace and lower-case for dedup comparison."""
+            return " ".join(text.lower().split())
+
+        def _add(review_data: Dict[str, Any], is_featured: bool) -> None:
+            text = review_data.get("text", "").strip()
+            if not text:
+                return
+            key = _normalise(text)
+            if key not in seen_keys:
+                seen_keys[key] = Review(
+                    text=text,
                     rating=review_data.get("rating"),
                     username=review_data.get("username"),
                     has_modification=review_data.get("has_modification", False),
+                    is_featured=is_featured,
+                    helpful_count=review_data.get("helpful_count", 0),
+                    date=review_data.get("date"),
                 )
-                reviews.append(review)
+            else:
+                # If we've now seen a featured version, upgrade the existing entry.
+                if is_featured and not seen_keys[key].is_featured:
+                    seen_keys[key] = seen_keys[key].model_copy(
+                        update={"is_featured": True}
+                    )
 
-        return reviews
+        # Featured tweaks first so they win any dedup collision by default.
+        for review_data in recipe_data.get("featured_tweaks", []):
+            _add(review_data, is_featured=True)
+
+        for review_data in recipe_data.get("reviews", []):
+            _add(review_data, is_featured=False)
+
+        return list(seen_keys.values())
 
     def process_single_recipe(
         self, recipe_file: str, save_output: bool = True
     ) -> Optional[EnhancedRecipe]:
         """
         Process a single recipe through the complete pipeline.
+
+        Reviews are ranked deterministically (featured first, then by helpful
+        count and rating) and the top ``self.top_k_reviews`` are extracted and
+        applied in order.  No random selection is used.
 
         Args:
             recipe_file: Path to recipe JSON file
@@ -138,51 +177,78 @@ class LLMAnalysisPipeline:
             recipe = self.parse_recipe_data(recipe_data)
             reviews = self.parse_reviews_data(recipe_data)
 
+            featured_count = sum(1 for r in reviews if r.is_featured)
+            mod_count = sum(1 for r in reviews if r.has_modification)
             logger.info(f"Loaded recipe: {recipe.title}")
             logger.info(
-                f"Found {len(reviews)} reviews, {len([r for r in reviews if r.has_modification])} with modifications"
+                f"Found {len(reviews)} unique reviews "
+                f"({featured_count} featured, {mod_count} with modifications)"
             )
 
             if not any(r.has_modification for r in reviews):
                 logger.warning("No reviews with modifications found")
                 return None
 
-            # Step 1: Extract modification from one random review
-            logger.info("Step 1: Extracting modification from a single review...")
-            modification, source_review = (
-                self.tweak_extractor.extract_single_modification(reviews, recipe)
+            # Step 1: Extract modifications from top-K ranked reviews
+            logger.info(
+                f"Step 1: Extracting modifications from top-{self.top_k_reviews} ranked reviews..."
+            )
+            extraction_results = self.tweak_extractor.extract_top_k_modifications(
+                reviews, recipe, top_k=self.top_k_reviews
             )
 
-            if not modification or not source_review:
-                logger.warning("No modification could be extracted")
+            if not extraction_results:
+                logger.warning("No modifications could be extracted")
                 return None
 
             logger.info(
-                f"Successfully extracted {modification.modification_type} modification"
+                f"Successfully extracted {len(extraction_results)} modification(s)"
             )
 
-            # Step 2: Apply modification to recipe
-            logger.info("Step 2: Applying modification to recipe...")
-            modified_recipe, change_records = self.recipe_modifier.apply_modification(
-                recipe, modification
-            )
+            # Step 2: Apply modifications sequentially to the evolving recipe
+            logger.info("Step 2: Applying modifications to recipe...")
+            current_recipe = recipe
+            applied_modifications = []
 
+            for i, (modification, source_review) in enumerate(extraction_results, start=1):
+                logger.info(
+                    f"  Applying modification {i}/{len(extraction_results)}: "
+                    f"{modification.modification_type}"
+                )
+                current_recipe, change_records = self.recipe_modifier.apply_modification(
+                    current_recipe, modification
+                )
+                applied_modifications.append(
+                    {
+                        "modification": modification,
+                        "source_review": source_review,
+                        "change_records": change_records,
+                    }
+                )
+                logger.info(f"    → {len(change_records)} change(s) applied")
+
+            total_changes = sum(
+                len(entry["change_records"]) for entry in applied_modifications
+            )
             logger.info(
-                f"Applied modification: {len(change_records)} total changes made"
+                f"All modifications applied: {total_changes} total change(s) across "
+                f"{len(applied_modifications)} modification(s)"
             )
 
             # Step 3: Generate enhanced recipe with attribution
             logger.info("Step 3: Generating enhanced recipe with attribution...")
-
             enhanced_recipe = self.enhanced_generator.generate_enhanced_recipe(
-                recipe, modified_recipe, modification, source_review, change_records
+                recipe, current_recipe, applied_modifications
             )
 
             logger.info(f"Generated enhanced recipe: {enhanced_recipe.title}")
 
             # Save output
             if save_output:
-                output_filename = f"enhanced_{recipe.recipe_id}_{recipe.title.lower().replace(' ', '-')[:30]}.json"
+                output_filename = (
+                    f"enhanced_{recipe.recipe_id}_"
+                    f"{recipe.title.lower().replace(' ', '-')[:30]}.json"
+                )
                 output_path = self.output_dir / output_filename
                 self.enhanced_generator.save_enhanced_recipe(
                     enhanced_recipe, str(output_path)
