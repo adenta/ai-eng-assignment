@@ -14,11 +14,11 @@ This project uses [`uv`](https://docs.astral.sh/uv/) for fast, reliable Python p
 ## Setup
 
 ```bash
-# Install dependencies
-uv venv
-source .venv/bin/activate
-uv pip sync pyproject.toml
+# Create .venv (if missing) and install from uv.lock
+uv sync
 ```
+
+No manual activation is required; use `uv run ...` for all commands.
 
 ### Environment Variables
 
@@ -39,20 +39,18 @@ uv run python src/scraper_v2.py
 ### 2. Run Recipe Enhancement Pipeline
 
 ```bash
-cd src
-
 # Test single recipe (chocolate chip cookies)
-uv run python test_pipeline.py single
+uv run python src/test_pipeline.py single
 
 # Process all recipes
-uv run python test_pipeline.py all
+uv run python src/test_pipeline.py all
 ```
 
 ## Output
 
 ### Enhanced Recipes
 
-Enhanced recipes are saved in `src/data/enhanced/`:
+Enhanced recipes are saved in `data/enhanced/`:
 
 - `enhanced_[recipe_id]_[recipe-name].json` - Individual enhanced recipes with modifications applied
 - `pipeline_summary_report.json` - Summary of all processing results
@@ -102,5 +100,5 @@ Each run produces one enhanced recipe per original recipe, with complete attribu
 uv add <package_name>
 
 # Run tests
-cd src && uv run python test_pipeline.py single
+uv run python src/test_pipeline.py single
 ```

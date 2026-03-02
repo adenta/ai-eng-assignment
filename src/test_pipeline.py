@@ -6,8 +6,8 @@ This script tests the complete 3-step pipeline with support for both single reci
 testing and full recipe directory validation.
 
 Usage:
-    python test_pipeline.py single    # Test single chocolate chip cookie recipe
-    python test_pipeline.py all       # Test all recipes in data directory
+    uv run python src/test_pipeline.py single  # Test single recipe
+    uv run python src/test_pipeline.py all     # Test all recipes
 """
 
 import os
@@ -18,8 +18,11 @@ from dotenv import load_dotenv
 from llm_pipeline.pipeline import LLMAnalysisPipeline
 from loguru import logger
 
-# Load environment variables from .env file
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
+
+# Load environment variables from repository .env file regardless of cwd
+load_dotenv(dotenv_path=PROJECT_ROOT / ".env")
 
 
 def test_single_recipe():
@@ -33,15 +36,15 @@ def test_single_recipe():
 
     # Initialize pipeline
     try:
-        pipeline = LLMAnalysisPipeline()
+        pipeline = LLMAnalysisPipeline(output_dir=str(DATA_DIR / "enhanced"))
         logger.info("Pipeline initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize pipeline: {e}")
         return False
 
     # Test with chocolate chip cookie recipe
-    recipe_file = "../data/recipe_10813_best-chocolate-chip-cookies.json"
-    if not Path(recipe_file).exists():
+    recipe_file = DATA_DIR / "recipe_10813_best-chocolate-chip-cookies.json"
+    if not recipe_file.exists():
         logger.error(f"Recipe file not found: {recipe_file}")
         return False
 
@@ -50,7 +53,7 @@ def test_single_recipe():
     try:
         # Process the recipe
         enhanced_recipe = pipeline.process_single_recipe(
-            recipe_file=recipe_file,
+            recipe_file=str(recipe_file),
             save_output=True
         )
 
@@ -83,7 +86,7 @@ def test_all_recipes():
 
     # Initialize pipeline
     try:
-        pipeline = LLMAnalysisPipeline()
+        pipeline = LLMAnalysisPipeline(output_dir=str(DATA_DIR / "enhanced"))
         logger.info("Pipeline initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize pipeline: {e}")
@@ -92,7 +95,7 @@ def test_all_recipes():
     try:
         # Process all recipes
         enhanced_recipes = pipeline.process_recipe_directory(
-            data_dir="../data"
+            data_dir=str(DATA_DIR)
         )
 
         # Generate summary report
@@ -117,7 +120,7 @@ def main():
 
     # Parse command line argument
     if len(sys.argv) < 2:
-        logger.error("Usage: python test_pipeline.py [single|all]")
+        logger.error("Usage: uv run python src/test_pipeline.py [single|all]")
         logger.info("  single - Test single chocolate chip cookie recipe")
         logger.info("  all    - Test all recipes in data directory")
         sys.exit(1)
@@ -153,7 +156,7 @@ def main():
 
     else:
         logger.error(f"Unknown mode: {mode}")
-        logger.error("Usage: python test_pipeline.py [single|all]")
+        logger.error("Usage: uv run python src/test_pipeline.py [single|all]")
         sys.exit(1)
 
 
