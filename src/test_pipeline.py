@@ -93,6 +93,32 @@ def test_all_recipes():
         return False
 
     try:
+        # Count total recipe files before processing
+        total_recipe_files = list(Path(DATA_DIR).glob("recipe_*.json"))
+        total_count = len(total_recipe_files)
+
+        # Identify which recipes have reviews with modifications (can be enhanced)
+        enhanceable_files = []
+        skippable_files = []
+        for recipe_file in total_recipe_files:
+            import json
+            with open(recipe_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            has_mods = any(
+                r.get("has_modification", False)
+                for r in data.get("featured_tweaks", []) + data.get("reviews", [])
+            )
+            if has_mods:
+                enhanceable_files.append(recipe_file.name)
+            else:
+                skippable_files.append(recipe_file.name)
+
+        if skippable_files:
+            logger.warning(
+                f"{len(skippable_files)} recipe(s) have no reviews with modifications "
+                f"and cannot be enhanced: {skippable_files}"
+            )
+
         # Process all recipes
         enhanced_recipes = pipeline.process_recipe_directory(
             data_dir=str(DATA_DIR)
@@ -102,11 +128,26 @@ def test_all_recipes():
         report_path = pipeline.save_summary_report(enhanced_recipes)
 
         logger.info(f"\n{'=' * 60}")
-        logger.success("✓ All recipes test complete!")
-        logger.info(f"Enhanced recipes: {len(enhanced_recipes)}")
+        logger.info(f"Enhanced recipes: {len(enhanced_recipes)}/{total_count} total")
         logger.info(f"Summary report saved to: {report_path}")
 
-        return len(enhanced_recipes) > 0
+        # Success only if all enhanceable recipes were processed
+        if len(enhanced_recipes) == len(enhanceable_files):
+            logger.success(
+                f"✓ All {len(enhanced_recipes)} enhanceable recipe(s) processed successfully!"
+            )
+            if skippable_files:
+                logger.warning(
+                    f"  ({len(skippable_files)} recipe(s) skipped — no reviews with modifications)"
+                )
+            return True
+        else:
+            failed_count = len(enhanceable_files) - len(enhanced_recipes)
+            logger.error(
+                f"✗ {failed_count} enhanceable recipe(s) failed to process "
+                f"({len(enhanced_recipes)}/{len(enhanceable_files)} succeeded)"
+            )
+            return False
 
     except Exception as e:
         logger.error(f"All recipes test failed with error: {e}")
