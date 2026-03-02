@@ -76,25 +76,6 @@ Concrete result: pipeline now picks the right reviews per spec and produces repe
   Impact: Enhanced output drops timing metadata.
   Fix: Normalize and map timing fields during parse.
 
-## Fix: compound reviews now produce multi-type `modification_type` arrays
-
-**Root cause:** `ModificationObject.modification_type` was typed as a single `Literal` string, forcing the LLM to pick exactly one category per review. Real reviews are frequently compound — a reviewer might adjust quantities, remove an ingredient, add a new one, and change a technique all in the same comment. Collapsing that to a single label silently discarded information and produced inaccurate attribution.
-
-**Changes:**
-
-- `src/llm_pipeline/models.py`
-  - Extracted a `ModificationType` alias for the valid literal values
-  - `ModificationObject.modification_type` → `List[ModificationType]` (one or more categories per extraction)
-  - `ModificationApplied.modification_type` → `List[str]` to match
-
-- `src/llm_pipeline/prompts.py`
-  - `SYSTEM_PROMPT` — updated category description to make clear `modification_type` is an **array**; added explicit guidance that compound reviews must list every applicable category
-  - `build_simple_prompt` — updated the inline JSON schema example to show an array value and added a note that `modification_type` MUST be a JSON array
-  - `FEW_SHOT_EXAMPLES` — all four examples updated to use array syntax; the second example (sugar ratio + omit water + cream of tartar + refrigerate) is now a full compound example with `["quantity_adjustment", "removal", "addition", "technique_change"]`; the third example (salt + omit nuts) now correctly uses `["quantity_adjustment", "removal"]`
-
-- `src/llm_pipeline/enhanced_recipe_generator.py`
-  - `calculate_enhancement_summary` — `change_types` now flattens and deduplicates across all `modification_type` lists (was a simple `set` of single strings before)
-
 # Plan of attack
 
 Four things to get this production ready

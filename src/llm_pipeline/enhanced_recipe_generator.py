@@ -87,7 +87,6 @@ class EnhancedRecipeGenerator:
             EnhancementSummary with aggregate statistics
         """
         total_changes = sum(len(mod.changes_made) for mod in modifications_applied)
-        # modification_type is now a list; flatten and deduplicate across all modifications
         change_types = list(
             dict.fromkeys(
                 t for mod in modifications_applied for t in mod.modification_type
