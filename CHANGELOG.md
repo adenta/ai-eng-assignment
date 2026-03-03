@@ -83,6 +83,7 @@ Four things to get this production ready
 1. fix review processing system (random.choice stuff, featured tweaks stuff)
 2. compound reviews
 3. fuzzy matching in RecipeModifer
+
 4. hypothetical language modifications
 5. small bugfixes (eg: malformed extraction prompt, metadata mapping)
 
@@ -104,6 +105,4 @@ starting work on QA stuff. I am going to have a CSV for the video so i am adding
 Longer term refactoring:
 we are doing a lot of small LLM calls without a ton of context, we should probably do a few bigger llm calls that take all of the various changes into account
 
-didnt fix fuzzy searching
-
-didnt fix hypothetical modifications
+fuzzy searching is still a problem, IMO solved by either using more model calls/tokens
