@@ -28,7 +28,17 @@ Edit operations:
 - "add_after": Add new text after finding target text
 - "remove": Remove text that matches the find pattern
 
-Be precise with text matching - use the exact text from the original recipe when possible."""
+Be precise with text matching - use the exact text from the original recipe when possible.
+
+Critical extraction rules:
+1) ONLY capture concrete changes the reviewer actually made. Ignore hypotheticals or intentions such as:
+   "next time I will...", "I might...", "I would...", "I may...", "I'd probably..."
+2) If a sentence mixes concrete and hypothetical content, extract only the concrete part.
+3) For edit text fields (`replace`, `add`, `find`), output clean recipe-line text only.
+   Do NOT include meta commentary like "increased to...", "reduced from...", "because...", or "instead of..."
+4) Keep numeric quantities clean and canonical (e.g., "1 cup", "1/2 cup", "1.5 cups").
+   Do NOT produce malformed values such as "0.1 cup" when the intended value is "1 cup".
+5) If no concrete applied change exists, return `edits: []` and `modification_type: []`."""
 
 EXTRACTION_PROMPT = """Original Recipe:
 Title: {title}
@@ -250,4 +260,11 @@ Output a JSON object with this structure:
 
 modification_type MUST be a JSON array. Include every applicable category — most reviews involve more than one.
 
-Focus on concrete changes the user actually made, not general suggestions."""
+Focus on concrete changes the user actually made, not general suggestions.
+
+Important formatting constraints for `replace` and `add`:
+- Output only the final recipe text to insert into ingredients/instructions.
+- Never include commentary in parentheses (for example: "(increased to 1 cup)").
+- Never include comparison/explanation wording (for example: "reduced from", "instead of", "because").
+- If a change is hypothetical ("next time", "I would", "I might"), do not output an edit for that part.
+- If all candidate changes are hypothetical, output an empty edits list and empty modification_type list."""

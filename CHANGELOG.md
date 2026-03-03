@@ -100,3 +100,10 @@ Cline broke, so fixing that. Looks like they updated their remote MCP stuff
 I shipped updates to the modification type and added a library for fuzzy strings. It doesn't work exactly how i want it to, IMO this would be done in some other layer/system, ignoring for now and moving on.
 
 starting work on QA stuff. I am going to have a CSV for the video so i am adding that.
+
+Longer term refactoring:
+we are doing a lot of small LLM calls without a ton of context, we should probably do a few bigger llm calls that take all of the various changes into account
+
+didnt fix fuzzy searching
+
+didnt fix hypothetical modifications
